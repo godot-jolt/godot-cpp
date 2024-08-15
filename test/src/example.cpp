@@ -193,6 +193,8 @@ void Example::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("return_extended_ref"), &Example::return_extended_ref);
 	ClassDB::bind_method(D_METHOD("extended_ref_checks", "ref"), &Example::extended_ref_checks);
 
+	ClassDB::bind_method(D_METHOD("is_object_binding_set_by_parent_constructor"), &Example::is_object_binding_set_by_parent_constructor);
+
 	ClassDB::bind_method(D_METHOD("test_array"), &Example::test_array);
 	ClassDB::bind_method(D_METHOD("test_tarray_arg", "array"), &Example::test_tarray_arg);
 	ClassDB::bind_method(D_METHOD("test_tarray"), &Example::test_tarray);
@@ -200,7 +202,7 @@ void Example::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("test_node_argument"), &Example::test_node_argument);
 	ClassDB::bind_method(D_METHOD("test_string_ops"), &Example::test_string_ops);
 	ClassDB::bind_method(D_METHOD("test_str_utility"), &Example::test_str_utility);
-	ClassDB::bind_method(D_METHOD("test_string_is_fourty_two"), &Example::test_string_is_fourty_two);
+	ClassDB::bind_method(D_METHOD("test_string_is_forty_two"), &Example::test_string_is_forty_two);
 	ClassDB::bind_method(D_METHOD("test_string_resize"), &Example::test_string_resize);
 	ClassDB::bind_method(D_METHOD("test_vector_ops"), &Example::test_vector_ops);
 	ClassDB::bind_method(D_METHOD("test_vector_init_list"), &Example::test_vector_init_list);
@@ -239,6 +241,7 @@ void Example::_bind_methods() {
 
 	GDVIRTUAL_BIND(_do_something_virtual, "name", "value");
 	ClassDB::bind_method(D_METHOD("test_virtual_implemented_in_script"), &Example::test_virtual_implemented_in_script);
+	GDVIRTUAL_BIND(_do_something_virtual_with_control, "control");
 
 	ClassDB::bind_method(D_METHOD("test_use_engine_singleton"), &Example::test_use_engine_singleton);
 
@@ -290,7 +293,17 @@ void Example::_bind_methods() {
 	BIND_ENUM_CONSTANT(OUTSIDE_OF_CLASS);
 }
 
-Example::Example() {
+bool Example::has_object_instance_binding() const {
+	return internal::gdextension_interface_object_get_instance_binding(_owner, internal::token, nullptr);
+}
+
+Example::Example() :
+		object_instance_binding_set_by_parent_constructor(has_object_instance_binding()) {
+	// Test conversion, to ensure users can use all parent class functions at this time.
+	// It would crash if instance binding still not be initialized.
+	Variant v = Variant(this);
+	Object *o = (Object *)v;
+
 	//UtilityFunctions::print("Constructor.");
 }
 
@@ -348,7 +361,7 @@ ExampleRef *Example::return_extended_ref() const {
 }
 
 Ref<ExampleRef> Example::extended_ref_checks(Ref<ExampleRef> p_ref) const {
-	// This is therefor the prefered way of instancing and returning a refcounted object:
+	// This is therefore the preferred way of instancing and returning a refcounted object:
 	Ref<ExampleRef> ref;
 	ref.instantiate();
 	return ref;
@@ -368,6 +381,10 @@ void Example::varargs_func_void(const Variant **args, GDExtensionInt arg_count, 
 
 void Example::emit_custom_signal(const String &name, int value) {
 	emit_signal("custom_signal", name, value);
+}
+
+bool Example::is_object_binding_set_by_parent_constructor() const {
+	return object_instance_binding_set_by_parent_constructor;
 }
 
 Array Example::test_array() const {
@@ -393,8 +410,8 @@ String Example::test_str_utility() const {
 	return UtilityFunctions::str("Hello, ", "World", "! The answer is ", 42);
 }
 
-bool Example::test_string_is_fourty_two(const String &p_string) const {
-	return strcmp(p_string.utf8().ptr(), "fourty two") == 0;
+bool Example::test_string_is_forty_two(const String &p_string) const {
+	return strcmp(p_string.utf8().ptr(), "forty two") == 0;
 }
 
 String Example::test_string_resize(String p_string) const {
